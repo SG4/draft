@@ -1,0 +1,116 @@
+\documentclass[12pt,twoside]{article}
+\usepackage{pslatex}
+\usepackage{palatino}
+\usepackage{avant}
+\usepackage{enumerate}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{graphicx}
+
+\begin{document}
+\lstset{language=C++}
+
+\title{Network Byte Order Conversion\\
+Document Number: N3646}
+\author{Reply-to: Robert Pratte\\
+  \texttt{rpratte@gmail.com}}
+\date{2013-04-16}
+\maketitle
+
+\tableofcontents
+\section{Introduction}
+This proposal adds support to C++ for converting between host and network byte order.
+
+\section{Motivation and Scope}
+Converting between host and network byte ordering is an essential component of many network programs. This proposal adds support for the four existing byte order converting function specified by \texttt{IEEE Std 1003.1-2008} that have been in use since the 1970s. Additionally two generic functions, and their specializations for unsigned integer types, are specified for converting between network and host byte order.
+
+\section{Design Decisions}
+The functions \texttt{htonl()}, \texttt{htons()}, \texttt{ntohl()}, and \texttt{ntohs()} are intentionally included even though they are not necessary given the \texttt{hton<T>()} and \texttt{ntoh<T>()} template functions. This is to maintain compatibility with the POSIX standard (\texttt{IEEE Std 1003.1-2008}) and to allow backwards compatibility with existing networking programs. The function names are also chosen to match existing names rather than using a more verbose and descriptive name such as \verb host_to_network. This choice is made as, within the network programming domain, texttt{ntoh} and texttt{hton} are established vocabulary terms.
+
+\texttt{hton<T>()} and \texttt{ntoh<T>()} are specified as generic templates rather than listing overloads for \texttt{hton()} and \texttt{ntoh()}. This allows user extension of this function.
+
+The current specification allows the four non-template functions to be macros. This does not present implementation concerns, is addressed by note \#174 from paragraph \texttt{6} in section \texttt{17.6.1.2}, and is already dealt with for names in the \texttt{<cerrno>} header.
+
+An alternate proposal is to standardize a more general byte order conversion library like Boost Endian. Such a proposal expands the scope beyond that which is immediately useful for network programming. The choice to provide a network domain specific byte order conversion facility allows a more immediately useful interface based on existing practice that does not in any way limit the future introduction of a more general purpose byte order conversion facility. Should such a facility be standardized in the future the implementation of this proposal would simply alias names from there. As stated before, within the network programming domain \texttt{hton} and \texttt{ntoh}
+are established vocabulary terms and are useful names within net:: even if a more general facility is developed.
+
+\section{Technical Specifications}
+Header \texttt{<net>} Synopsis
+\begin{lstlisting}
+#include <cstdint>
+namespace std {
+   namespace experimental {
+      namespace net {
+ 
+         constexpr uint32_t htonl(uint32_t host32) noexcept;
+         constexpr uint16_t htons(uint16_t host16) noexcept;
+         constexpr uint32_t ntohl(uint32_t net32) noexcept;
+         constexpr uint16_t ntohs(uint16_t net16) noexcept;
+ 
+         template <class T>
+         constexpr T hton(T host) noexcept = delete;
+         
+         template <>
+         constexpr unsigned-integral 
+            hton(unsigned-integral host) noexcept;
+            
+         template <class T>
+         constexpr T ntoh(T net) noexcept = delete;
+         
+         template <>
+         constexpr unsigned-integral 
+            ntoh(unsigned-integral host) noexcept;
+     } // namespace net
+  } // namespace experimental
+} // namespace std
+\end{lstlisting}
+ 
+\begin{itemize}
+    \item There shall be explicit specializations of the \texttt{hton()} and \texttt{ntoh()} templates for most unsigned integer types listed in 3.9.1 and 18.4.1: unsigned short int, unsigned int, unsigned long int, unsigned long long int
+, uint16\_t, uint32\_t, uint64\_t
+    \item  Note: assigning templates to delete is valid and addressed by core issue 941.
+    \item Network byte order is big endian, or most significant byte first. This byte order is used by certain network data formats as it passes through the network. Host byte order is the endianness of the host machine.
+
+
+\begin{lstlisting}
+template <class T>
+constexpr T hton(T value);
+\end{lstlisting}
+    \item Returns: The argument value converted from host to network byte order.
+
+
+\begin{lstlisting}
+template <class T>
+constexpr T ntoh(T net);
+\end{lstlisting}
+    \item Returns: The argument value converted from network to host byte order.
+
+
+\begin{lstlisting}
+uint32_t htonl(uint32_t host32);
+uint16_t htons(uint16_t host16);
+\end{lstlisting}
+    \item Remarks:  \texttt{htonl()} behaves the same as \texttt{hton<uint32\_t>()}.  \texttt{htons()}behaves the same as \texttt{hton<uint16\_t>()}.
+    \item Returns: The argument value converted from host to network byte order.
+
+
+\begin{lstlisting}
+uint32_t ntohl(uint32_t net32);
+uint16_t ntohs(uint16_t net16);
+\end{lstlisting}
+    \item Remarks: \texttt{ntohl()} behaves the same as \texttt{ntoh<uint32\_t>()}.  \texttt{ntohs()}
+behaves the same as  \texttt{ntoh<uint16\_t>()}.
+    \item Returns: The argument value converted from network to host byte order.
+\end{itemize}
+
+\section{Acknowledgments}
+Thanks for the editorial feedback from Darin Pantley and Rob Pratte. Thanks to Benjamin De Kosnik for early implementation validation. Thanks to Christof Meerwald for the suggestion of using \= delete. Thanks to Frank Birbacher for the suggestion to use \texttt{noexcept}. Thanks to the rest of SG4 group in attendance in Bristol for good discussion and feedback.
+
+\section{References}
+\begin{itemize}
+    \item Open Group Base Specifications Issue 7, IEEE Std 1003.1\-­2008
+    \item BYTEORDER(3) \- BSD Library Functions Manual (4 June 1993)
+    \item Boost Endian \- \url{http://boost.cowic.de/rc/endian/doc/}
+\end{itemize}
+
+\end{document}
